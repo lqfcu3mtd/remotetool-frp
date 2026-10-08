@@ -1,0 +1,17 @@
+# Private runtime/configuration and generated binaries
+.runtime/
+config.json
+server.local.json
+agent.local.json
+admin.local.json
+*.log
+*.key
+*.pem
+*.crt
+remotetool
+remotetool.exe
+frpc
+frps
+frpc.exe
+frps.exe
+dist/
