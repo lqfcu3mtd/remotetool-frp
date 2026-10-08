@@ -1,0 +1,9 @@
+{
+  "listen": "127.0.0.1:8080",
+  "adminToken": "REPLACE_WITH_UNIQUE_ADMIN_SECRET",
+  "leaseSeconds": 15,
+  "maxMappings": 64,
+  "endpoints": [
+    {"id": "site-a", "name": "现场 A", "token": "REPLACE_WITH_UNIQUE_ENDPOINT_SECRET", "allowedCIDRs": ["192.168.10.0/24"], "allowedPorts": [22, 80, 443, 502]}
+  ]
+}

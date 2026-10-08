@@ -1,0 +1,11 @@
+# FRP 0.71.0. Replace every placeholder before deployment.
+bindAddr = "127.0.0.1"
+bindPort = 7000
+# Keep other FRP proxy types from exposing public listeners if a peer is compromised.
+proxyBindAddr = "127.0.0.1"
+auth.method = "token"
+auth.token = "REPLACE_WITH_FRP_SHARED_SECRET"
+transport.tls.force = true
+transport.tls.certFile = "./relay.crt"
+transport.tls.keyFile = "./relay.key"
+# No dashboard, UDP, vhost HTTP/S, or virtual network listener.

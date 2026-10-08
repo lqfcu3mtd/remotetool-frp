@@ -1,0 +1,14 @@
+{
+  "centralURL": "https://control.example.invalid:8443",
+  "token": "REPLACE_WITH_UNIQUE_ADMIN_SECRET",
+  "listen": "127.0.0.1:8181",
+  "frp": {
+    "binary": "./frpc",
+    "serverAddr": "relay.example.invalid",
+    "serverPort": 7000,
+    "token": "REPLACE_WITH_FRP_SHARED_SECRET",
+    "trustedCA": "./relay-ca.crt",
+    "serverName": "relay.example.invalid",
+    "runtimeDir": ".runtime"
+  }
+}
