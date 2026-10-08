@@ -25,6 +25,10 @@ import (
 
 const requiredFRPVersion = "0.71.0"
 
+// Cold process startup can take several seconds on Windows. This budget is
+// only for initialization, before any mapping or control-plane lease exists.
+const frpStartupTimeout = 15 * time.Second
+
 type FRPConfig struct {
 	Binary            string `json:"binary"`
 	ServerAddr        string `json:"serverAddr"`
@@ -113,11 +117,8 @@ func NewFRP(c FRPConfig, role string) (*FRP, error) {
 	if err != nil {
 		return nil, err
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-	out, err := exec.CommandContext(ctx, c.Binary, "--version").Output()
-	if err != nil || strings.TrimSpace(string(out)) != requiredFRPVersion {
-		return nil, fmt.Errorf("FRP binary must report exactly version %s", requiredFRPVersion)
+	if err := checkFRPVersion(context.Background(), c.Binary); err != nil {
+		return nil, err
 	}
 	root := c.RuntimeDir
 	if root == "" {
@@ -171,6 +172,30 @@ func NewFRP(c FRPConfig, role string) (*FRP, error) {
 	}
 	ok = true
 	return f, nil
+}
+
+// checkFRPVersion keeps startup failure distinct from a successfully reported
+// unsupported version. Never include subprocess output in diagnostics.
+func checkFRPVersion(parent context.Context, binary string) error {
+	ctx, cancel := context.WithTimeout(parent, frpStartupTimeout)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, binary, "--version")
+	// Bound waiting for inherited output pipes as well as the process itself.
+	cmd.WaitDelay = time.Second
+	out, err := cmd.Output()
+	if err != nil {
+		if ctx.Err() != nil {
+			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+				return fmt.Errorf("FRP version check timed out (startup budget %s): %w", frpStartupTimeout, ctx.Err())
+			}
+			return fmt.Errorf("FRP version check canceled: %w", ctx.Err())
+		}
+		return fmt.Errorf("FRP version check could not execute successfully: %w", err)
+	}
+	if strings.TrimSpace(string(out)) != requiredFRPVersion {
+		return fmt.Errorf("FRP binary must report exactly version %s", requiredFRPVersion)
+	}
+	return nil
 }
 
 func (f *FRP) config(mappings []Mapping) ([]byte, error) {

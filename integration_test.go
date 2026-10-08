@@ -328,9 +328,8 @@ func newFRPIntegration(t *testing.T) *frpIntegration {
 		ext = ".exe"
 	}
 	for _, binary := range []string{"frpc", "frps"} {
-		out, err := exec.Command(filepath.Join(binDir, binary+ext), "--version").Output()
-		if err != nil || strings.TrimSpace(string(out)) != requiredFRPVersion {
-			t.Fatalf("FRP_TEST_DIR must provide stock %s %s: version %q, error %v", binary, requiredFRPVersion, out, err)
+		if err := checkFRPVersion(context.Background(), filepath.Join(binDir, binary+ext)); err != nil {
+			t.Fatalf("FRP_TEST_DIR must provide stock %s %s: %v", binary, requiredFRPVersion, err)
 		}
 	}
 	h := &frpIntegration{t: t, agentToken: randomHex(32), adminToken: randomHex(32)}
@@ -477,7 +476,7 @@ func (s *integrationFRPServer) start(t *testing.T) {
 		_ = s.log.Close()
 		t.Fatal(err)
 	}
-	deadline := time.Now().Add(5 * time.Second)
+	deadline := time.Now().Add(frpStartupTimeout)
 	for {
 		c, err := net.DialTimeout("tcp", net.JoinHostPort("127.0.0.1", itoa(s.port)), 100*time.Millisecond)
 		if err == nil {

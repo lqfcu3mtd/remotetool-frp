@@ -10,6 +10,12 @@
 - 单独 supervisor 测试连续三轮通过 race detector，包含验证 TLS 证书的 STCP 转发。
 - `CGO_ENABLED=0` 交叉构建：Windows amd64、Linux amd64、Linux arm64、Linux ARMv7。构建产物未放入源码仓库。
 
+## 本次 Windows 冷启动修复复验
+
+- 云 Linux `FRP_TEST_DIR=... go test -count=1 -v ./...`：33 个顶层测试 PASS，0 FAIL，0 SKIP，48.162 秒。
+- 云 Linux `FRP_TEST_DIR=... go test -race -count=2 ./...`：完整真实 FRP 套件连续两轮通过，101.726 秒。
+- `go vet ./...` 通过；Windows amd64 主程序及测试程序交叉编译通过。尚未在 Windows 执行本次修改。
+
 ## 真实 FRP 覆盖
 
 - 两个映射到不同的本地测试目标，验证返回 payload 来自对应目标。
@@ -34,7 +40,7 @@
 
 ## 尚未验证 / 明确限制
 
-- 尚未在实际 Windows 机器、ARM 网关、5G 网络或真实目标设备上运行。交叉构建不能替代设备实测。Windows 复测方法见 [WINDOWS-TEST.md](WINDOWS-TEST.md)。
+- Windows 初轮真实测试为 28 PASS / 3 FAIL / 0 SKIP：supervisor 的真实 reload/recovery 通过，另外三个集成用例被版本查询的 3 秒上限阻挡。已观察到官方 frpc 需约 4.446 秒才返回版本；本次修复仍需在 Windows 重新执行完整测试。ARM 网关、5G 网络及真实目标设备尚未验证。交叉构建不能替代设备实测。Windows 复测方法见 [WINDOWS-TEST.md](WINDOWS-TEST.md)。
 - 浏览器视觉/点击交互尚未手工验证；HTTP handler 与 UI 安全边界已自动验证。
 - 没有公网部署，没有防火墙变更，没有真实证书/凭据配置。
 - Windows 非正常退出的进程树清理由服务管理器负责；Linux 使用父线程退出信号作为额外防护。正常退出会清理 frpc。
@@ -46,3 +52,5 @@
 原版 FRP reload 删除 provider/visitor 后，已经建立的 TCP 流仍可能继续传输。已将移除、禁用和任何目标/密钥/权限相关变更改为重启对应 frpc，并添加持有已建立流的撤销回归测试。新增映射仍采用 reload。
 
 批量目标探测原先可能按并发批次数累加超时，现改为整个批次 1 秒预算，且能被退出上下文取消。中心请求体在获取 registry 锁前完成有限读取，避免慢请求占据全局锁。
+
+版本查询原先将超时与执行失败都误报为版本不匹配。初始化版本检查现使用 15 秒预算，分别报告超时、取消、执行失败与不支持的版本；仍严格要求 `0.71.0`。真实集成测试的 frps 启动等待也使用 15 秒预算。运行中的 reload、控制失联、租约撤销及停止时限未放宽。新增跨平台子进程回归覆盖超过 3 秒后成功输出、真正超时、非零退出、缺失程序、错误版本/多余输出，以及上层取消/更短截止时间。
